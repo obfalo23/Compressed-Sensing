@@ -25,6 +25,7 @@ cvx_begin
     minimize( norm(F_us*x_est-X_us, 2) + gamma*norm(x_est,1) )
 cvx_end
 
+figure;
 plot(x_est)
 title("x estimated using CVX")
 disp(norm(x_est-x,2))
