@@ -18,20 +18,27 @@ x_est = zeros(128,1000);
 error = double.empty;
 
 step_size = 1;
-epsilon = 0.1; % Stop criterion
+epsilon = 0.01; % Stop criterion
 
 disp("Initial error:")
 disp(norm(F_us*x_est(:,1) - X_us, 2))
 best_error = 1000;
 k = 1;
-max_steps = 1000;
+max_steps = 5000;
+tStart = cputime;
 while norm(F_us*x_est(:,k) - X_us, 2) > epsilon && k < max_steps
     % Calculate step size
     step_size = 10/k;
 
     % Check if the solution is holding to the constraint
     disp(norm(x_est(:,k), 1))
-    if norm(x_est(:,k), 1) > 1 + 2*k/max_steps
+    if k <= 1000
+        feas_thres = 1 + 2*k/max_steps
+    else
+        feas_thres = 3
+    end
+
+    if norm(x_est(:,k), 1) > feas_thres
         nabula = sign(x_est(:,k));
         %nabula = -nabula;
     else
@@ -50,6 +57,9 @@ while norm(F_us*x_est(:,k) - X_us, 2) > epsilon && k < max_steps
 
     k = k + 1;
 end
+tEnd = cputime - tStart;
+disp("CPU time since start of loop")
+disp(tEnd);
 
 disp("Final error:") 
 disp(norm(F_us*best_x_est - X_us, 2))
