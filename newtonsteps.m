@@ -27,15 +27,17 @@ k = 1;
 max_steps = 1000;
 while norm(F_us*x_est(:,k) - X_us, 2) > epsilon && k < max_steps
     % Calculate step size
-    step_size = 1/k;
+    step_size = 10/k;
 
     % Check if the solution is holding to the constraint
-    if norm(x_est(:,k), 1) > 0.1 + 3*k/max_steps
+    disp(norm(x_est(:,k), 1))
+    if norm(x_est(:,k), 1) > 1 + 2*k/max_steps
         nabula = sign(x_est(:,k));
         %nabula = -nabula;
     else
         % Calculate first derivatives (direction)
         nabula = real(2*F_us'*F_us*x_est(:,k) - 2*F_us'*X_us);
+        Hessian = real(2*F_us*F_us);
     end
 
     x_est(:,k+1) = abs(x_est(:,k) - step_size*nabula);
@@ -58,7 +60,7 @@ disp(norm(best_x_est-x,2))
 figure;
 plot(error)
 yscale("log")
-title("Ërrör")
+title("Error")
 
 figure;
 plot(real(best_x_est))
