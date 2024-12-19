@@ -20,51 +20,34 @@ x_est = zeros(128,1000);
 
 error = double.empty;
 
-
 % Parameters
 step_size = 1;
-epsilon = 0.001; % Stop criterion
-gamma = 0.1;
+epsilon = 0.01; % Stop criterion
+gamma = 0.111;
 max_steps = 50;
 best_error = 1000; % Make it high so it always chooses the minimum.
 
 F_us_exp = [real(F_us);imag(F_us)];
 X_us_exp = [real(X_us);imag(X_us)];
 
-k = 1;
 disp("Initial error:")
-% Calculate error
-error = [error; norm(F_us*x_est(:,1) - X_us, 2)];
-disp(error)
+disp(norm(F_us*x_est(:,1) - X_us, 2))
 
+k = 1;
 tStart = cputime;
-while norm(F_us*x_est(:,k) - X_us, 2) > epsilon && k < max_steps
-    % Calculate first derivatives (direction)
-    nabula = (2*F_us_exp'*F_us_exp*x_est(:,k) - 2*F_us_exp'*X_us_exp) / norm(F_us*x_est(:,k) - X_us,2)  + gamma * sign(x_est(:,k));
-    
+while norm(F_us*x_est(:,k) - X_us, 2) + gamma*norm(x_est,1) > epsilon && k < max_steps
     % Calculate step size
-    step_size = 1/(k+1);
+    step_size = 1/k;
 
-    % Calculate new x
-    for i=1:1:128
-        j = 3;
-        while j < 100
-            x_est(i,k+1) = x_est(i,k) - step_size*nabula(i,1);
-            if x_est(i,k+1) < 0
-                %nabula(i,1) = 1/j*step_size*nabula(i,1);
-                nabula(i,1) = 0;
-            else 
-                break;
-            end
-            j = j + 1;
-        end
-    end
-    
+    % Calculate first derivatives (direction)
+    %nabula = (2*F_us'*F_us*x_est(:,k) - 2*F_us'*X_us) / norm(F_us*x_est(:,k) - X_us);
+    nabula = (2*F_us_exp'*F_us_exp*x_est(:,k) - 2*F_us_exp'*X_us_exp) / norm(F_us*x_est(:,k) - X_us,2)  + gamma * sign(x_est(:,k));
+
     % Calculate new x
     x_est(:,k+1) = x_est(:,k) - step_size*nabula;
     
     % Calculate error
-    error = [error; norm(F_us*x_est(:,k+1) - X_us, 2)];
+    error = [error; norm(F_us*x_est(:,k) - X_us, 2)];
     
     if error(end) <= best_error
         best_x_est = x_est(:,k);
@@ -77,14 +60,14 @@ tEnd = cputime - tStart;
 disp("CPU time since start of loop")
 disp(tEnd);
 
+disp("Stopping criterion:")
+disp("norm(F_us*x_est(:,k) - X_us, 2) + gamma*norm(x_est,1) < 0.01")
+disp(norm(F_us*x_est(:,k) - X_us, 2) + gamma*norm(x_est,1))
 disp("Steps to get to stopping criterion:")
 disp(k)
 
-disp("Final error, l2-norm of cost function:") 
+disp("Final error:") 
 disp(norm(F_us*best_x_est - X_us, 2))
-
-disp("Final l1-norm of x:") 
-disp(norm(best_x_est, 1))
 
 disp("Error with true vector")
 disp(norm(best_x_est-x,2))
@@ -95,5 +78,5 @@ yscale("log")
 title("Error")
 
 figure;
-plot(best_x_est)
+plot(real(best_x_est))
 title("Estimated x using gradient descent for constrained problem")

@@ -28,6 +28,11 @@ cvx_end
 figure;
 plot(x_est)
 title("x estimated using CVX")
+
+disp("Final error:") 
+disp(norm(F_us*x_est - X_us, 2))
+
+disp("Error with true vector")
 disp(norm(x_est-x,2))
 
 % Determine sparsity
