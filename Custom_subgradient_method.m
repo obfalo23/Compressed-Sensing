@@ -33,14 +33,13 @@ while norm(F_us*x_est(:,k) - X_us, 2) > epsilon && k < max_steps
     % Check if the solution is holding to the constraint
     disp(norm(x_est(:,k), 1))
     if k <= 1000
-        feas_thres = 1 + 2*k/max_steps
+        feas_thres = 1 + 2*k/max_steps;
     else
-        feas_thres = 3
+        feas_thres = 3;
     end
 
     if norm(x_est(:,k), 1) > feas_thres
         nabula = sign(x_est(:,k));
-        %nabula = -nabula;
     else
         % Calculate first derivatives (direction)
         nabula = real(2*F_us'*F_us*x_est(:,k) - 2*F_us'*X_us);
@@ -74,4 +73,4 @@ title("Error")
 
 figure;
 plot(real(best_x_est))
-title("x estimated using Newton steps")
+title("Estimated x using Custom gradient descent")
