@@ -42,21 +42,12 @@ while norm(F_us*x_est(:,k) - X_us, 2) > epsilon && k < K
     
     % Calculate step size with decreasing exponential
     step_size = exp(-(k)/step_size_exp_parameter)/(k+1);
+
+    % Subgradient descent
+    x_est(:,k+1) = x_est(:,k) - step_size*nabula(:);
     
-    % Subgradient descent and check element wise for non-negativity constraint 
-    % and reduce nabula iteratively to get into solution space
-    for i=1:1:128
-        j = 1;
-        while j < 100
-            x_est(i,k+1) = x_est(i,k) - step_size*nabula(i,1);
-            if x_est(i,k+1) < 0
-                nabula(i,1) = 0.01/j*step_size*nabula(i,1);
-            else 
-                break;
-            end
-            j = j + 1;
-        end
-    end
+    % Enforcing non-negativity constrained by projection
+    x_est(:,k+1) = max(0, x_est(:,k+1));
     
     % Calculate error and decide on best error
     error(k) = norm(F_us*x_est(:,k+1) - X_us, 2);
