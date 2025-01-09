@@ -19,9 +19,6 @@ error = double.empty;
 
 step_size = 1;
 epsilon = 0.01; % Stop criterion
-alpha = 0.01;
-beta = 0.5;
-gamma = 0.1;
 
 disp("Initial error:")
 disp(norm(F_us*x_est(:,1) - X_us, 2))
@@ -29,21 +26,27 @@ best_error = 1000;
 k = 1;
 max_steps = 5000;
 tStart = cputime;
-diff_x = 0;
 while norm(F_us*x_est(:,k) - X_us, 2) > epsilon && k < max_steps
-    
-    % Calculate using backtracking line search
-    t = 1;
-    while (norm(F_us*(xest(:,k) + t*diff_x)-X_us, 2) + gamma * sign((xest(:,k) + t*diff_x))) > (norm(F_us*xest(:,k)-X_us, 2) + gamma * sign(xest(:,k) + t*diff_x)) + alpha*t*nabula*diff_x) 
-        t = beta*t;
+    % Calculate step size
+    step_size = 10/k;
+
+    % Check if the solution is holding to the constraint
+    % disp(norm(x_est(:,k), 1))
+    if k <= 1000
+        feas_thres = 1 + 2*k/max_steps;
+    else
+        feas_thres = 3;
     end
-    
-    % Calculate first derivatives (direction)
-    nabula = 2*F_us'*F_us*x_est(:,k) - 2*F_us'*X_us + gamma * sign(x_est(:,k));
-    Hessian = 2*F_us'*F_us + gamma;
-    
-    % Update estimate of x
-    x_est(:,k+1) = x_est(:,k) - (1/Hessian)*nabula;
+
+    if norm(x_est(:,k), 1) > feas_thres
+        nabula = sign(x_est(:,k));
+    else
+        % Calculate first derivatives (direction)
+        nabula = real(2*F_us'*F_us*x_est(:,k) - 2*F_us'*X_us);
+        Hessian = real(2*F_us*F_us);
+    end
+
+    x_est(:,k+1) = abs(x_est(:,k) - step_size*nabula);
     error = [error; norm(F_us*x_est(:,k) - X_us, 2)];
     
     if error(end) <= best_error
@@ -70,4 +73,4 @@ title("Error")
 
 figure;
 plot(real(best_x_est))
-title("Estimated x")
+title("Estimated x using Custom gradient descent")
