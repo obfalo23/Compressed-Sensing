@@ -15,7 +15,7 @@ N = n; % Data size
 step_size = 1;
 epsilon = 1e-15; % Stop criterion
 gamma = 0.1;
-step_size_exp_parameter = 50;
+step_size_exp_parameter = 70;
 K = 5000; % Max steps of simulation
 
 % Use a twice as tall expanded matrix to be able to differentiate an
@@ -48,7 +48,7 @@ while norm(F_us*x_est(:,k) - X_us, 2) > epsilon && k < K
     
     % Enforcing non-negativity constrained by projection
     x_est(:,k+1) = max(0, x_est(:,k+1));
-    
+
     % Calculate error and decide on best error
     error(k) = norm(F_us*x_est(:,k+1) - X_us, 2);
     if error(end) <= best_error
@@ -58,10 +58,10 @@ while norm(F_us*x_est(:,k) - X_us, 2) > epsilon && k < K
 
     k = k + 1;
     % Progress update, comment out if not needed
-    if mod(k,1000) == 0
-        k
-        -log(error(k-1))
-    end
+    % if mod(k,1000) == 0
+    %     k
+    %     -log(error(k-1))
+    % end
 end
 tEnd = cputime - tStart;
 disp("CPU time since start of loop")

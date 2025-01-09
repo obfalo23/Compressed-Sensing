@@ -13,7 +13,7 @@ disp(norm(x,1))
 % Parameters
 N = n; % Data size
 step_size = 1;
-epsilon = 0.00000000001; % Stop criterion
+epsilon = 1e-15; % Stop criterion
 gamma = 0.1;
 K = 10000; % Max steps of simulation
 
