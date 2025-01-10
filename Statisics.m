@@ -2,6 +2,7 @@ clear all
 close all
 clc
 load("cs.mat")
+x_true = x;
 
 % Start the statistics routine here
 N = n; % Data size
@@ -11,24 +12,31 @@ gamma = 0.1;
 
 % Statistics parameters and stucts
 Methods = 5;
-P = 1;
+P = 50;
 error_struct = zeros(Methods,P,K);
 iteration_struct = zeros(Methods, P);
 cpuTime_struct = zeros(Methods, P);
 best_error_struct = zeros(Methods, P);
+true_data_error_struct = zeros(Methods, P);
 
 for p = 1:P
     %% CVX
     cvx_begin
+        cvx_precision best
+        cvx_solver_settings('dumpfile', 'Test')
         variable x_est(n)
         minimize( norm(F_us*x_est-X_us, 2) + gamma*norm(x_est,1) )
+        subject to
+            x_est(n) >= 0
     cvx_end
-    
+    load("Test.mat")
+
     % Save statistics
     error_struct(1,p,1) = norm(F_us*x_est - X_us, 2);
     best_error_struct(1,p) = error_struct(1,p,1);
-    iteration_struct(1,p) = 10;
-    cpuTime_struct(1,p) = 0.5;
+    iteration_struct(1,p) = cvx_slvitr;
+    cpuTime_struct(1,p) = cvx_cputime;
+    true_data_error_struct(1, p) = norm(x_est-x_true,2);
 
     %% Subgradient_descent_max_x_l1 and linear Step_size
     
@@ -64,20 +72,30 @@ for p = 1:P
         
         % Calculate error and decide on best error
         error(k) = norm(F_us*x_est(:,k+1) - X_us, 2);
-        if error(end) <= best_error
-            best_x_est = x_est(:,k);
-            best_error = error(k);
+        if(norm(F_us*x_est(:,k) - X_us, 2) < epsilon) && iteration_struct(2,p) <= 1
+            if error(end) <= best_error
+                best_x_est = x_est(:,k);
+                best_error = error(k);
+            end
+            tEnd = cputime - tStart;
+            cpuTime_struct(2,p) = tEnd;
+            iteration_struct(2,p) = k;
         end
     
         k = k + 1;
     end
     tEnd = cputime - tStart;
-    
+    best_x_est = x_est(:,k-1);
+
     % Save statistics
     error_struct(2,p,:) = error(:);
     best_error_struct(2,p) = best_error;
-    iteration_struct(2,p) = k;
-    cpuTime_struct(2,p) = tEnd;
+    true_data_error_struct(2, p) = norm(best_x_est-x_true,2);
+    
+    if iteration_struct(2,p) == 0
+        iteration_struct(2,p) = k;
+        cpuTime_struct(2,p) = tEnd;
+    end
 
     %% Sub gradient linear step size absolute x_est (basis persuit denoising)
 
@@ -96,7 +114,7 @@ for p = 1:P
     % Descent till stop criterion is met on l2 error
     k = 1;
     tStart = cputime;
-    while norm(F_us*x_est(:,k) - X_us, 2) > epsilon && k < K
+    while k < K
         % Calculate first derivatives (direction)
         nabula = (2*(F_us_exp'*F_us_exp)*x_est(:,k) - 2*F_us_exp'*X_us_exp) / norm(F_us*x_est(:,k) - X_us,2)  + gamma * sign(x_est(:,k));
         
@@ -108,20 +126,30 @@ for p = 1:P
         
         % Calculate error and decide on best error
         error(k) = norm(F_us*x_est(:,k+1) - X_us, 2);
-        if error(end) <= best_error
-            best_x_est = x_est(:,k);
-            best_error = error(k);
+        if(norm(F_us*x_est(:,k) - X_us, 2) < epsilon) && iteration_struct(3,p) <= 1
+            if error(end) <= best_error
+                best_x_est = x_est(:,k);
+                best_error = error(k);
+            end
+            tEnd = cputime - tStart;
+            cpuTime_struct(3,p) = tEnd;
+            iteration_struct(3,p) = k;
         end
-    
+
         k = k + 1;
     end
     tEnd = cputime - tStart;
-    
+    best_x_est = x_est(:,k-1);
+
     % Save statistics
     error_struct(3,p,:) = error(:);
     best_error_struct(3,p) = best_error;
-    iteration_struct(3,p) = k;
-    cpuTime_struct(3,p) = tEnd;
+    true_data_error_struct(3, p) = norm(best_x_est-x_true,2);
+
+    if iteration_struct(3,p) == 0
+        iteration_struct(3,p) = k;
+        cpuTime_struct(3,p) = tEnd;
+    end
     
     %% Projected subgradient method
     
@@ -143,7 +171,7 @@ for p = 1:P
     % Descent till stop criterion is met on l2 error
     k = 1;
     tStart = cputime;
-    while norm(F_us*x_est(:,k) - X_us, 2) > epsilon && k < K
+    while k < K
         % Calculate first derivatives (direction)
         nabula = (2*(F_us_exp'*F_us_exp)*x_est(:,k) - 2*F_us_exp'*X_us_exp) / norm(F_us*x_est(:,k) - X_us,2)  + gamma * sign(x_est(:,k));
         
@@ -158,25 +186,29 @@ for p = 1:P
     
         % Calculate error and decide on best error
         error(k) = norm(F_us*x_est(:,k+1) - X_us, 2);
-        if error(end) <= best_error
-            best_x_est = x_est(:,k);
-            best_error = error(k);
+        if(norm(F_us*x_est(:,k) - X_us, 2) < epsilon) && iteration_struct(4,p) <= 1
+            if error(end) <= best_error
+                best_x_est = x_est(:,k);
+                best_error = error(k);
+            end
+            tEnd = cputime - tStart;
+            cpuTime_struct(4,p) = tEnd;
+            iteration_struct(4,p) = k;
         end
     
         k = k + 1;
-        % Progress update, comment out if not needed
-        % if mod(k,1000) == 0
-        %     k
-        %     -log(error(k-1))
-        % end
     end
     tEnd = cputime - tStart;
     
     % Save statistics
     error_struct(4,p,:) = error(:);
     best_error_struct(4,p) = best_error;
-    iteration_struct(4,p) = k;
-    cpuTime_struct(4,p) = tEnd;
+    true_data_error_struct(4, p) = norm(best_x_est-x_true,2);
+    
+    if iteration_struct(4,p) == 0
+        iteration_struct(4,p) = k;
+        cpuTime_struct(4,p) = tEnd;
+    end
 
     %% Custom method
     
@@ -198,7 +230,7 @@ for p = 1:P
     % Descent till stop criterion is met on l2 error
     k = 1;
     tStart = cputime;
-    while norm(F_us*x_est(:,k) - X_us, 2) > epsilon && k < K
+    while k < K
         % Calculate first derivatives (direction)
         nabula = (2*(F_us_exp'*F_us_exp)*x_est(:,k) - 2*F_us_exp'*X_us_exp) / norm(F_us*x_est(:,k) - X_us,2)  + gamma * sign(x_est(:,k));
         
@@ -222,9 +254,14 @@ for p = 1:P
     
         % Calculate error and decide on best error
         error(k) = norm(F_us*x_est(:,k+1) - X_us, 2);
-        if error(end) <= best_error
-            best_x_est = x_est(:,k);
-            best_error = error(k);
+        if(norm(F_us*x_est(:,k) - X_us, 2) < epsilon) && iteration_struct(5,p) <= 1
+            if error(end) <= best_error
+                best_x_est = x_est(:,k);
+                best_error = error(k);
+            end
+            tEnd = cputime - tStart;
+            cpuTime_struct(5,p) = tEnd;
+            iteration_struct(5,p) = k;
         end
     
         k = k + 1;
@@ -234,12 +271,76 @@ for p = 1:P
     % Save statistics
     error_struct(5,p,:) = error(:);
     best_error_struct(5,p) = best_error;
-    iteration_struct(5,p) = k;
-    cpuTime_struct(5,p) = tEnd;
+    true_data_error_struct(5, p) = norm(best_x_est-x_true,2);
+
+    if iteration_struct(5,p) == 0
+        iteration_struct(5,p) = k;
+        cpuTime_struct(5,p) = tEnd;
+    end
 
     %% loop debug
     p % print progress
 end
+
+%% CPU time
+disp("Mean CPUtime CVX")
+disp(mean(cpuTime_struct(1,:)))
+disp("Mean CPUtime max_l1")
+disp(mean(cpuTime_struct(2,:)))
+disp("Mean CPUtime basis")
+disp(mean(cpuTime_struct(3,:)))
+disp("Mean CPUtime proj_sub")
+disp(mean(cpuTime_struct(4,:)))
+disp("Mean CPUtime Custom")
+disp(mean(cpuTime_struct(5,:)))
+
+% And Standard deviation
+disp("std dev CPUtime CVX")
+disp(std(cpuTime_struct(1,:)))
+disp("std dev CPUtime max_l1")
+disp(std(cpuTime_struct(2,:)))
+disp("std dev CPUtime basis")
+disp(std(cpuTime_struct(3,:)))
+disp("std dev CPUtime proj_sub")
+disp(std(cpuTime_struct(4,:)))
+disp("std dev CPUtime Custom")
+disp(std(cpuTime_struct(5,:)))
+
+%% Iteration
+disp("Mean iterations CVX")
+disp(mean(iteration_struct(1,:)))
+disp("Mean iterations max_l1")
+disp(mean(iteration_struct(2,:)))
+disp("Mean iterations basis")
+disp(mean(iteration_struct(3,:)))
+disp("Mean iterations proj_sub")
+disp(mean(iteration_struct(4,:)))
+disp("Mean iterations Custom")
+disp(mean(iteration_struct(5,:)))
+
+%% True data error
+disp("Mean true data error CVX")
+disp(mean(true_data_error_struct(1,:)))
+disp("Mean true data error max_l1")
+disp(mean(true_data_error_struct(2,:)))
+disp("Mean true data error basis")
+disp(mean(true_data_error_struct(3,:)))
+disp("Mean true data error proj_sub")
+disp(mean(true_data_error_struct(4,:)))
+disp("Mean true data error Custom")
+disp(mean(true_data_error_struct(5,:)))
+
+% And Standard deviation
+disp("Std dev true data error CVX")
+disp(std(true_data_error_struct(1,:)))
+disp("Std dev true data error max_l1")
+disp(std(true_data_error_struct(2,:)))
+disp("Std dev true data error basis")
+disp(std(true_data_error_struct(3,:)))
+disp("Std dev true data error proj_sub")
+disp(std(true_data_error_struct(4,:)))
+disp("Std dev true data error Custom")
+disp(std(true_data_error_struct(5,:)))
 
 %% Plotting
 plot_CVX = reshape(mean(error_struct(1,:,:),2),K,1);
@@ -251,13 +352,11 @@ plot_Custom = reshape(mean(error_struct(5,:,:),2),K,1);
 iterations = linspace(1,K,K);
 figure
 
-plot(iterations,plot_CVX, 'DisplayName','CVX');
-hold on;
-plot(iterations,plot_max_l1, 'DisplayName','max_l1');
+plot(iterations,plot_max_l1, 'DisplayName','max l1');
 hold on;
 plot(iterations,plot_basis, 'DisplayName','basis');
 hold on;
-plot(iterations,plot_proj_sub, 'DisplayName','proj_sub');
+plot(iterations,plot_proj_sub, 'DisplayName','proj sub');
 hold on;
 plot(iterations,plot_Custom, 'DisplayName','Custom');
 hold on;

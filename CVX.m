@@ -1,8 +1,16 @@
 clear all
 close all
+clc
 load("cs.mat")
 
-gamma = 0.1
+x_true = x;
+
+figure
+plot(x);
+title("true data vector")
+
+gamma = 0.1;
+
 % Show the sparse data and data mask
 figure;
 plot(sampling_mask);
@@ -19,11 +27,16 @@ title("Sampling_mask*x")
 figure;
 plot(real(X_us));
 title("X_us");
-
 cvx_begin
+    cvx_precision best
+    cvx_solver_settings('dumpfile', 'Test')
     variable x_est(n)
     minimize( norm(F_us*x_est-X_us, 2) + gamma*norm(x_est,1) )
+    subject to
+        x_est(n) >= 0
 cvx_end
+
+load("Test.mat")
 
 figure;
 plot(x_est)
@@ -33,10 +46,4 @@ disp("Final error:")
 disp(norm(F_us*x_est - X_us, 2))
 
 disp("Error with true vector")
-disp(norm(x_est-x,2))
-
-% Determine sparsity
-% non_zero_array = find([X_us(1:end-1)]);
-% K = size(non_zero_array)
-% 
-% Z = [diff([1,non_zero_array(:).'+1])-1;X_us(non_zero_array(:).',1).'].'
+disp(norm(x_est-x_true,2))

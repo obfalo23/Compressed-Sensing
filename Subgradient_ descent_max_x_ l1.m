@@ -31,7 +31,6 @@ while norm(F_us*x_est(:,k) - X_us, 2) > epsilon && k < max_steps
     step_size = 10/k;
 
     % Check if the solution is holding to the constraint
-    % disp(norm(x_est(:,k), 1))
     if k <= 1000
         feas_thres = 1 + 2*k/max_steps;
     else
@@ -43,7 +42,6 @@ while norm(F_us*x_est(:,k) - X_us, 2) > epsilon && k < max_steps
     else
         % Calculate first derivatives (direction)
         nabula = real(2*F_us'*F_us*x_est(:,k) - 2*F_us'*X_us);
-        Hessian = real(2*F_us*F_us);
     end
 
     x_est(:,k+1) = abs(x_est(:,k) - step_size*nabula);
